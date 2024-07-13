@@ -1,74 +1,64 @@
-from pathlib import Path
-import shutil
 import argparse
-
-COLOR_BLUE = "\033[94m"
-COLOR_RESET = "\033[0m"
-COLOR_RED = "\033[91m"
+import shutil
+from pathlib import Path
 
 
-def copy_and_sort_files(source_dir, dest_dir="dist"):
+def parse_argv():
+    parser = argparse.ArgumentParser(description="Image sorting")
+    parser.add_argument(
+        "-S", "--source", type=Path, required=True, help="Images directory"
+    )
+    parser.add_argument(
+        "-O",
+        "--output",
+        type=Path,
+        default=Path("output"),
+        help="Sorted images directory",
+    )
+    return parser.parse_args()
 
-    source_dir = Path(source_dir)
-    dest_dir = Path(dest_dir)
 
-    if not source_dir.exists():
-        print(f"{COLOR_BLUE}Вихідна директорія не існує!{COLOR_RESET}")
-        return
+def recursive_copy(src: Path, dst: Path):
+    if not src.is_dir():
+        raise NotADirectoryError(
+            f"Source '{src}' is not a directory or does not exist."
+        )
 
-    if not dest_dir.exists():
-        try:
-            dest_dir.mkdir()
-        except Exception as e:
-            print(
-                f"{COLOR_RED}Не вдалося створити директорію призначення: {e}{COLOR_RESET}"
-            )
-            return
+    print(f"Copying from {src} to {dst}")
 
-    for item in source_dir.iterdir():
-        try:
+    try:
+        for item in src.iterdir():
             if item.is_dir():
-                copy_and_sort_files(item, dest_dir)
-            elif item.is_file():
-
-                extension = item.suffix[1:]
-                dest_subdir = dest_dir / extension
-                dest_subdir.mkdir(exist_ok=True)
-                shutil.copy2(item, dest_subdir)
-        except Exception as e:
-            print(f"{COLOR_RED}Не вдалося обробити {item}: {e}{COLOR_RESET}")
+                recursive_copy(item, dst / item.name)
+            else:
+                file_extension = item.suffix.lower()[1:]  # .jpg -> jpg
+                folder = dst / file_extension
+                folder.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, folder)
+                print(f"Copied {item} to {folder}")
+    except (FileNotFoundError, PermissionError) as e:
+        print(f"An error occurred during copying: {e}")
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Копіювання файлів з сортуванням за розширенням."
-    )
+    args = parse_argv()
+    print(f"Arguments: source={args.source}, output={args.output}")
 
-    parser.add_argument("src", type=Path, help="Шлях до вихідної директорії")
-
-    parser.add_argument(
-        "dest",
-        type=Path,
-        nargs="?",
-        default="dist",
-        help='Шлях до директорії призначення (за замовчуванням "dist")',
-    )
-
-    args = parser.parse_args()
-
-    if not args.src.is_dir():
-        print(f"Помилка: Директорія {args.src} не існує або не є директорією.")
-        return
-
-    try:
-        args.dest.mkdir(parents=True, exist_ok=True)
-    except Exception as e:
+    # Check if the source directory exists
+    if not args.source.is_dir():
         print(
-            f"{COLOR_RED}Не вдалося створити директорію призначення: {e}{COLOR_RESET}"
+            f"Error: Source path '{args.source}' is not a directory or does not exist."
         )
         return
-    copy_and_sort_files(args.src, args.dest)
-    print(f"Файли успішно скопійовані до {args.dest}")
+
+    # Create the output directory if it doesn't exist
+    if not args.output.exists():
+        args.output.mkdir(parents=True, exist_ok=True)
+
+    try:
+        recursive_copy(args.source, args.output)
+    except Exception as e:
+        print(f"An error occurred during copying: {e}")
 
 
 if __name__ == "__main__":

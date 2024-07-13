@@ -137,3 +137,13 @@
 ## Формат оцінювання
 
 Залік/незалік
+
+---
+
+### Команди для тестів ДЗ №1
+
+ls ~/Desktop/projects/goit-algo-hw-03
+
+python3 task-1.py -S ~/Desktop/projects/goit-algo-hw-03 -O ~/Desktop/projects/goit-algo-hw-03/output
+
+python3 task-1.py -S /home/your_username/Desktop/projects/goit-algo-hw-03 -O /home/your_username/Desktop/projects/goit-algo-hw-03/output
