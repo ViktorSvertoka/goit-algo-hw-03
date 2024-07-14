@@ -19,46 +19,36 @@ def parse_argv():
 
 
 def recursive_copy(src: Path, dst: Path):
-    if not src.is_dir():
-        raise NotADirectoryError(
-            f"Source '{src}' is not a directory or does not exist."
-        )
-
-    print(f"Copying from {src} to {dst}")
-
     try:
         for item in src.iterdir():
             if item.is_dir():
-                recursive_copy(item, dst / item.name)
+                recursive_copy(item, dst)
             else:
-                file_extension = item.suffix.lower()[1:]  # .jpg -> jpg
+                file_extension = item.suffix.lower()[1:]
                 folder = dst / file_extension
                 folder.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(item, folder)
-                print(f"Copied {item} to {folder}")
+                dest_file = folder / item.name
+                print(f"Copying {item} to {dest_file}")
+                shutil.copy2(item, dest_file)
     except (FileNotFoundError, PermissionError) as e:
-        print(f"An error occurred during copying: {e}")
+        print(f"An error occurred: {e}")
 
 
 def main():
     args = parse_argv()
-    print(f"Arguments: source={args.source}, output={args.output}")
-
-    # Check if the source directory exists
-    if not args.source.is_dir():
+    print(f"Source: {args.source}, Output: {args.output}")
+    if not args.source.exists() or not args.source.is_dir():
         print(
-            f"Error: Source path '{args.source}' is not a directory or does not exist."
+            f"Error: The source directory '{args.source}' does not exist or is not a directory."
         )
         return
-
-    # Create the output directory if it doesn't exist
-    if not args.output.exists():
-        args.output.mkdir(parents=True, exist_ok=True)
-
     try:
-        recursive_copy(args.source, args.output)
+        args.output.mkdir(parents=True, exist_ok=True)
     except Exception as e:
-        print(f"An error occurred during copying: {e}")
+        print(f"Failed to create output directory: {e}")
+        return
+    recursive_copy(args.source, args.output)
+    print(f"Files successfully copied to {args.output}")
 
 
 if __name__ == "__main__":
